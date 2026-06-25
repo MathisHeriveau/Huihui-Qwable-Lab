@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "huihui-qwable-lab"
+version = "0.1.0"
+description = "Local evaluation lab for Huihui Qwable GGUF models."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Codex"}]
+dependencies = []
+
+[project.scripts]
+qwable-lab = "qwable_lab.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

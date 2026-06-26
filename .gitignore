@@ -7,3 +7,4 @@ models/
 runs/
 reports/*.html
 reports/*.json
+tools/llama.cpp/

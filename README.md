@@ -20,19 +20,34 @@ python -m pip install -e .
 qwable-lab models
 ```
 
-Start a local OpenAI-compatible server. With `llama.cpp`, the shape is typically:
+Download the GGUF files first. Use `hf download` with explicit filenames; this is more reliable than `--include` for this repo.
 
 ```bash
-llama-server \
-  -hf huihui-ai/Huihui-Qwable-3.6-27b-abliterated-MTP-GGUF \
-  -hff Huihui-Qwable-3.6-27b-abliterated-Q4_K_M_Q8-MTP.gguf \
-  --mmproj mmproj-model-f16.gguf \
+hf download \
+  huihui-ai/Huihui-Qwable-3.6-27b-abliterated-MTP-GGUF \
+  Huihui-Qwable-3.6-27b-abliterated-Q4_K_M_Q8-MTP.gguf \
+  --local-dir models/qwable
+
+hf download \
+  huihui-ai/Huihui-Qwable-3.6-27b-abliterated-MTP-GGUF \
+  mmproj-model-f16.gguf \
+  --local-dir models/qwable
+```
+
+Start a local OpenAI-compatible server:
+
+```bash
+./bin/llama-server \
+  -m models/qwable/Huihui-Qwable-3.6-27b-abliterated-Q4_K_M_Q8-MTP.gguf \
+  --mmproj models/qwable/mmproj-model-f16.gguf \
   --jinja \
   -c 32768 \
-  -ngl 99 \
+  -ngl 0 \
   --host 127.0.0.1 \
   --port 8080
 ```
+
+Do not use `-hf` with the local CPU build unless it was compiled with HTTPS support. The bundled build intentionally expects files downloaded by `hf download`.
 
 Then run the lab:
 
@@ -93,6 +108,19 @@ qwable-lab smoke --endpoint http://127.0.0.1:8080/v1
 qwable-lab run --endpoint http://127.0.0.1:8080/v1 --model local-qwable
 qwable-lab report --run runs/latest.json
 ```
+
+## Local llama.cpp Build
+
+If `llama-server` is not installed globally, build it inside this project:
+
+```bash
+git clone --depth 1 https://github.com/ggml-org/llama.cpp tools/llama.cpp
+cmake -S tools/llama.cpp -B tools/llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF
+cmake --build tools/llama.cpp/build --config Release --target llama-server -j 4
+./bin/llama-server --version
+```
+
+This CPU build is mainly a compatibility baseline. For good 27B performance, use a GPU-enabled llama.cpp build or another OpenAI-compatible runtime. If you rebuild `llama.cpp` with GPU support, change `-ngl 0` to `-ngl 99` or `-ngl auto`.
 
 ## Notes
 

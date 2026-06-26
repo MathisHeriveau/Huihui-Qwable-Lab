@@ -21,6 +21,11 @@ def main(argv: list[str] | None = None) -> int:
     download = subparsers.add_parser("download-command", help="Print a Hugging Face download command.")
     download.add_argument("--quant", default="Q4_K_M_Q8", help="Quantization substring to select.")
     download.add_argument("--local-dir", default="models/qwable", help="Target local model directory.")
+    download.add_argument(
+        "--gpu-layers",
+        default="0",
+        help="Value for llama.cpp -ngl. Use 0 for the bundled CPU build, 99/auto for a GPU build.",
+    )
 
     smoke = subparsers.add_parser("smoke", help="Check an OpenAI-compatible endpoint.")
     smoke.add_argument("--endpoint", required=True)
@@ -76,22 +81,22 @@ def _download_command(args: argparse.Namespace) -> int:
     info = fetch_model_info()
     model_file = choose_quant_file(info, args.quant)
     mmproj = find_mmproj(info)
+    server_bin = "./bin/llama-server" if Path("bin/llama-server").exists() else "llama-server"
     include_args = [model_file.name]
     if mmproj is not None:
         include_args.append(mmproj.name)
-    includes = " ".join(f"--include {name}" for name in include_args)
-    print(
-        "huggingface-cli download "
-        f"{REPO_ID} {includes} --local-dir {args.local_dir}"
-    )
+    for name in include_args:
+        print(f"hf download {REPO_ID} {name} --local-dir {args.local_dir}")
     print()
     print("llama.cpp server shape:")
     print(
-        "llama-server "
+        f"{server_bin} "
         f"-m {args.local_dir}/{model_file.name} "
         + (f"--mmproj {args.local_dir}/{mmproj.name} " if mmproj else "")
-        + "--jinja -c 32768 -ngl 99 --host 127.0.0.1 --port 8080"
+        + f"--jinja -c 32768 -ngl {args.gpu_layers} --host 127.0.0.1 --port 8080"
     )
+    print()
+    print("Note: the bundled CPU build has no HTTPS support; download first, then run with -m.")
     return 0
 
 
